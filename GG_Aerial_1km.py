@@ -9,14 +9,19 @@ import pyproj
 import threading
 from queue import Queue
 import time
+import rasterio
+from rasterio.transform import from_origin
+import numpy as np
 
 # part 0: parse arguments
-
 parser = argparse.ArgumentParser()
 parser.add_argument("center_lat", type=float)
 parser.add_argument("center_lon", type=float)
 parser.add_argument("output_location", type=str)
 args = parser.parse_args()
+
+print(f"Center Latitude: {args.center_lat}")
+print(f"Center Longitude: {args.center_lon}")
 
 # part 1: define helper functions
 
@@ -74,6 +79,12 @@ output_image = Image.new('RGB', (tile_size * num_tiles_x, tile_size * num_tiles_
 total_tiles = num_tiles_x * num_tiles_y
 tile_counter = 0
 
+print(f"BBox (WGS84): {bbox}")
+print(f"BBox (UTM33): {bbox_utm}")
+print(f"Resolution: {resolution} meters per pixel")
+print(f"Delta X: {delta_x}, Delta Y: {delta_y}")
+print(f"Number of Tiles (X): {num_tiles_x}, Number of Tiles (Y): {num_tiles_y}")
+
 # part 3: download and merge tiles
 
 print("Merging tiles into final image...")
@@ -107,24 +118,44 @@ for _ in range(num_workers):
 for worker in workers:
     worker.join()
 
-# part 8: Save the stitched image
-output_image_path = os.path.join(args.output_location, 'stitched_image_aerial.png')
+# Define the CRS
+crs = rasterio.crs.CRS.from_string("EPSG:32633")
 
+# Define the geotransformation (assuming north-up)
+transform = from_origin(bbox_utm[0], bbox_utm[3], delta_x, delta_y)
+print("Transform:", transform) # Print the transform
+
+# Define the profile (metadata)
+profile = {
+    'driver': 'GTiff',
+    'height': output_image.height,
+    'width': output_image.width,
+    'count': 3, # Assuming an RGB image
+    'dtype': rasterio.uint8,
+    'crs': crs,
+    'transform': transform,
+}
+
+print("Profile:", profile) # Print the profile
+
+# Convert the PIL image to a NumPy array
+output_array = np.array(output_image)
+
+# Save as a PNG file
+output_image_path = os.path.join(args.output_location, 'aerial_image.png')
 output_image.save(output_image_path)
+print(f"PNG saved to {output_image_path}")
 
-end_time = time.time() # stop timing
-print(f"Image merging took {1000 * (end_time - start_time):.2f} milliseconds.")
+# Reorder the bands so that they are in the order expected by rasterio
+#output_array = output_array[:, :, [2, 1, 0]]
 
-# part 9: Crop the image to a square of size 4096x4096 with the original center
-print("Cropping image...")
-start_time = time.time() # start timing
-center_x = int(num_tiles_x * tile_size / 2)
-center_y = int(num_tiles_y * tile_size / 2)
-half_size = 2048
-crop_bbox = (center_x - half_size, center_y - half_size, center_x + half_size, center_y + half_size)
-output_image = output_image.crop(crop_bbox)
-output_image_path = os.path.join(args.output_location, 'Aerial_1km_4096px.png')
-output_image.save(output_image_path)
+# Write the GeoTIFF file
+output_image_path = os.path.join(args.output_location, 'aerial_1km_download.tif')
+with rasterio.open(output_image_path, 'w', **profile) as dst:
+    for band in range(output_array.shape[2]):
+        dst.write(output_array[:, :, band], band + 1)
+
+print(f"GeoTIFF saved to {output_image_path}")
 
 # part 10: print time
 end_time = time.time() # stop timing
@@ -132,5 +163,10 @@ print(f"Image cropping took {1000 * (end_time - start_time):.2f} milliseconds.")
 
 print("All done!")
 
-# part 11: Open the final image in viewer
-#output_image.show()
+print("Aerial GeoTIFF Information:")
+print(f"  CRS: {crs}")
+print(f"  Transform: {transform}")
+print(f"  Width: {output_image.width}, Height: {output_image.height}")
+print(f"  Pixel Size: {delta_x} meters, {delta_y} meters")
+
+
