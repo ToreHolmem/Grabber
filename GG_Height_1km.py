@@ -23,12 +23,12 @@ center_lat, center_lon = args.center_lat, args.center_lon
 
 # Define the coordinate systems
 wgs84 = CRS('EPSG:4326')  # WGS84
-epsg32633 = CRS('EPSG:32633')  # UTM zone 33N (changed from 25833)
+epsg25833 = CRS('EPSG:25833')  # UTM zone 33N (changed from 25833)
 
 # Define the transformer
-transformer = Transformer.from_crs(wgs84, epsg32633)  # changed to 32633
+transformer = Transformer.from_crs(wgs84, epsg25833)  # changed to 25833
 
-# Convert center point to EPSG:32633
+# Convert center point to EPSG:25833
 center_x, center_y = transformer.transform(center_lat, center_lon)
 
 # Calculate the bounding box (minx, miny, maxx, maxy)
@@ -43,7 +43,7 @@ bbox = (
 response = wcs.getCoverage(
     identifier='nhm_dtm_topo_25833',
     bbox=bbox,
-    crs='EPSG:32633',  # changed to 32633
+    crs='EPSG:25833',  # changed to 25833
     format='GeoTIFF',
     resx=1,
     resy=1
@@ -66,9 +66,5 @@ print(f"  Pixel Size: {dataset.res[0]} meters, {dataset.res[1]} meters")
 
 
 print(f"GeoTIFF saved to {original_geotiff_path}")
-
-original_geotiff_path = os.path.join(args.output_location, 'height_1km_download.tif')
-with rasterio.open(original_geotiff_path, 'w', **dataset.profile) as original_dst:
-    original_dst.write(dataset.read())
 
 

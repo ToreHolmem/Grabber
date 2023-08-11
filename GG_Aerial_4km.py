@@ -50,7 +50,7 @@ def tile_worker(q, output_image, tile_size):
 # part 2: set up input parameters
 center_lat = args.center_lat
 center_lon = args.center_lon
-half_size = (0.5 + 0.2) * 1024
+half_size = (2 + 0.2) * 1024
 
 
 min_x = center_lon - half_size / (111.32 * 1000 * cos(center_lat * pi / 180))
@@ -71,7 +71,7 @@ resolutions = [
 ]
 
 # Define the zoom level
-zoom_level = 17  # Set your desired zoom level
+zoom_level = 16  # Set your desired zoom level
 
 # Get the resolution for the chosen zoom level
 resolution = resolutions[zoom_level]
@@ -157,12 +157,12 @@ print("Profile:", profile) # Print the profile
 output_array = np.array(output_image)
 
 # Save as a PNG file
-output_image_path = os.path.join(args.output_location, 'aerial_image.png')
+output_image_path = os.path.join(args.output_location, 'aerial_image_4km.png')
 output_image.save(output_image_path)
 print(f"PNG saved to {output_image_path}")
 
 # Write the GeoTIFF file
-output_image_path = os.path.join(args.output_location, 'aerial_1km_download.tif')
+output_image_path = os.path.join(args.output_location, 'aerial_4km_download.tif')
 with rasterio.open(output_image_path, 'w', **profile) as dst:
     for band in range(output_array.shape[2]):
         dst.write(output_array[:, :, band], band + 1)

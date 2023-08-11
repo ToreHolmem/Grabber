@@ -4,30 +4,60 @@ import time
 import rasterio
 from pyproj import CRS, Transformer
 import os
+from rasterio.warp import transform_bounds
+
+# Function to crop the image
+def crop_image(file_path, center_lat, center_lon, size_meters, output_path):
+    wgs84 = CRS('EPSG:4326')  # WGS84
+    epsg25833 = CRS('EPSG:25833')  # UTM zone 33N
+    transformer = Transformer.from_crs(wgs84, epsg25833)
+
+    center_x, center_y = transformer.transform(center_lat, center_lon)
+
+    half_size = size_meters / 2
+
+    bbox = (
+        center_x - half_size,  # minx
+        center_y - half_size,  # miny
+        center_x + half_size,  # maxx
+        center_y + half_size   # maxy
+    )
+
+    with rasterio.open(file_path) as src:
+        if src.crs != epsg25833:
+            bbox = transform_bounds(src.crs, epsg25833, *bbox)
+
+        window = rasterio.windows.from_bounds(*bbox, transform=src.transform)
+        cropped_array = src.read(window=window)
+
+        # Assuming you want the output to be square and the number of pixels
+        # to match the largest dimension of the window.
+        output_dim = max(window.width, window.height)
+
+        profile = src.profile
+        profile.update(
+            width=output_dim,
+            height=output_dim,
+            transform=rasterio.windows.transform(window, src.transform),
+            crs=epsg25833
+        )
+
+        with rasterio.open(output_path, 'w', **profile) as dst:
+            dst.write(cropped_array)
 
 
-# Define your variables
 center_lat = 62.62104190802922
 center_lon = 6.854110293340546
 
-# Detect the operating system and use the correct path format
 if platform.system() == 'Windows':
-    output_location = r"X:\Dropbox\! Prosjekter\Fiksdal\03 Assets\Data\Python Scripts Output"
+    output_location = r"X:\Dropbox\! Prosjekter\Fiksdal\03 Assets\Data\Python Scripts Output\V002"
 else:
     output_location = "/Users/toreholmem/Dropbox/! Prosjekter/Fiksdal/03 Assets/Data/Fra GGrabber"
 
 scripts_to_run = [
-    #GG_Aerial_1km.py',
-    #'GG_Aerial_1km_GN.py'
-    #GG_Aerial_1km_NIB.py'
-    #'GG_Aerial_1km_V2.py'
-    #'GG_Aerial_1km_Rasterio.py'
-    #'GG_Aerial_4km.py',
-    #'GG_Aerial_60km.py',
+    'GG_Aerial_1km.py',
+    'GG_Aerial_4km.py',
     'GG_Height_1km.py',
-    #'GG_Height_4km.py',
-    #'GG_Height_60km.py'
-    #'Query dump.py'
 ]
 
 for script in scripts_to_run:
@@ -45,50 +75,12 @@ for script in scripts_to_run:
 
 print("All scripts executed.")
 
-# Function to crop the image
-def crop_image(file_path, center_lat, center_lon, size_meters, output_path):
-    # Define the coordinate systems
-    wgs84 = CRS('EPSG:4326')  # WGS84
-    epsg32633 = CRS('EPSG:32633')  # UTM zone 33N
-
-    # Define the transformer
-    transformer = Transformer.from_crs(wgs84, epsg32633)
-
-    # Convert center point to EPSG:32633
-    center_x, center_y = transformer.transform(center_lat, center_lon)
-
-    # Calculate the bounding box (minx, miny, maxx, maxy)
-    half_size = size_meters / 2
-    bbox = (
-        center_x - half_size,  # minx
-        center_y - half_size,  # miny
-        center_x + half_size,  # maxx
-        center_y + half_size,  # maxy
-    )
-
-    with rasterio.open(file_path) as src:
-        # Calculate the window that corresponds to the bounding box
-        window = rasterio.windows.from_bounds(*bbox, transform=src.transform)
-
-        # Read the pixel values from the window
-        cropped_array = src.read(window=window)
-
-        # Update the profile with the new shape
-        profile = src.profile
-        profile.update(
-            width=window.width,
-            height=window.height,
-            transform=rasterio.windows.transform(window, src.transform),
-        )
-
-        # Write the cropped image to a new file
-        with rasterio.open(output_path, 'w', **profile) as dst:
-            dst.write(cropped_array)
-
-
-# Crop the height and aerial images
-crop_size_meters = 1009
+crop_size_meters = 1000
 crop_image(os.path.join(output_location, 'height_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'height_1km_cropped.tif'))
 crop_image(os.path.join(output_location, 'aerial_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'aerial_1km_cropped.tif'))
 
+crop_size_meters_4km = 4000
+crop_image(os.path.join(output_location, 'aerial_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'aerial_4km_cropped.tif'))
+
 print("Cropping completed.")
+
