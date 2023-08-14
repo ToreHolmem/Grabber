@@ -52,7 +52,7 @@ def tile_worker(q, output_image, tile_size):
 # part 2: set up input parameters
 center_lat = args.center_lat
 center_lon = args.center_lon
-half_size = (2 + 0.2) * 1024
+half_size = (2 + 0.2) * 1100
 
 
 min_x = center_lon - half_size / (111.32 * 1000 * cos(center_lat * pi / 180))
@@ -73,7 +73,7 @@ resolutions = [
 ]
 
 # Define the zoom level
-zoom_level = 16  # Set your desired zoom level
+zoom_level = 15  # Set your desired zoom level
 
 # Get the resolution for the chosen zoom level
 resolution = resolutions[zoom_level]

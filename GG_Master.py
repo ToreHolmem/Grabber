@@ -86,11 +86,11 @@ else:
     output_location = "/Users/toreholmem/Dropbox/! Prosjekter/Fiksdal/03 Assets/Data/Python Scripts Output"
 
 scripts_to_run = [
-    'GG_Aerial_1km.py',
-    'GG_Aerial_4km.py',
-    'GG_Height_1km.py',
-    'GG_Height_4km.py',
-    'GG_Height_60km.py',
+    #'GG_Aerial_1km.py',
+    #'GG_Aerial_4km.py',
+    #'GG_Height_1km.py',
+    #'GG_Height_4km.py',
+    #'GG_Height_60km.py',
 ]
 
 for script in scripts_to_run:
@@ -110,21 +110,21 @@ print("All scripts executed.")
 
 print("Cropping Files")
 
-#Crop images to the same area - 1km
-crop_size_meters = 1009
-crop_image(os.path.join(output_location, 'height_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'height_1km.tif'))
-crop_image(os.path.join(output_location, 'aerial_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'aerial_1km.tif'))
+##Crop images to the same area - 1km - 1009 meters to match Unreal Engine landscape preferences
+#crop_size_meters = 1009
+#crop_image(os.path.join(output_location, 'height_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'height_1km.tiff'))
+#crop_image(os.path.join(output_location, 'aerial_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'aerial_1km.tiff'))
 
-#Crop images to the same area - 4km
+#Crop images to the same area - 4km - 4033 meters to match Unreal Engine landscape preferences
 crop_size_meters_4km = 4033
-crop_image(os.path.join(output_location, 'aerial_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'aerial_4km.tif'))
-crop_image(os.path.join(output_location, 'height_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'height_4km.tif'))
+crop_image(os.path.join(output_location, 'aerial_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'aerial_4km.tiff'))
+#crop_image(os.path.join(output_location, 'height_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'height_4km.tiff'))
 
 print("Saving Aerial images as PNG copies")
 
 #Convert the aerial images to PNGs as well
-tif_to_png(os.path.join(output_location, 'aerial_1km.tif'), os.path.join(output_location, 'aerial_1km_copy.png'))
-tif_to_png(os.path.join(output_location, 'aerial_4km.tif'), os.path.join(output_location, 'aerial_4km_copy.png'))
+#tif_to_png(os.path.join(output_location, 'aerial_1km.tiff'), os.path.join(output_location, 'aerial_1km_copy.png'))
+tif_to_png(os.path.join(output_location, 'aerial_4km.tiff'), os.path.join(output_location, 'aerial_4km_copy.png'))
 
 #Clean up
 print("Cleaning up")
