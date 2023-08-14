@@ -171,7 +171,7 @@ print(f"GeoTIFF saved to {output_image_path}")
 end_time = time.time() # stop timing
 print(f"Image cropping took {1000 * (end_time - start_time):.2f} milliseconds.")
 
-print("All done!")
+print("Aerial 1km download and stitch done")
 
 print("Aerial GeoTIFF Information:")
 print(f"  CRS: {crs}")

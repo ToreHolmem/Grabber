@@ -1,41 +1,13 @@
 from owslib.wcs import WebCoverageService
 import rasterio
-from pyproj import CRS, Transformer
-import argparse
+import numpy as np
 import os
 from rasterio.io import MemoryFile
-from rasterio import merge
-
-# Define a function to compute the bounding box for each segment
-def get_segment_bbox(center_x, center_y, segment_size, segment):
-    offsets = {
-        "NW1": (-2*segment_size, 2*segment_size),
-        "NW2": (-segment_size, 2*segment_size),
-        "NW3": (-2*segment_size, segment_size),
-        "NW4": (-segment_size, segment_size),
-        
-        "NE1": (0, 2*segment_size),
-        "NE2": (segment_size, 2*segment_size),
-        "NE3": (0, segment_size),
-        "NE4": (segment_size, segment_size),
-        
-        "SW1": (-2*segment_size, 0),
-        "SW2": (-segment_size, 0),
-        "SW3": (-2*segment_size, -segment_size),
-        "SW4": (-segment_size, -segment_size),
-        
-        "SE1": (0, 0),
-        "SE2": (segment_size, 0),
-        "SE3": (0, -segment_size),
-        "SE4": (segment_size, -segment_size)
-    }
-    offset_x, offset_y = offsets[segment]
-    return (
-        center_x + offset_x,
-        center_y + offset_y,
-        center_x + offset_x + segment_size,
-        center_y + offset_y + segment_size
-    )
+from pyproj import CRS, Transformer
+import argparse
+from rasterio.merge import merge
+import imageio
+from concurrent.futures import ThreadPoolExecutor
 
 # Parse arguments
 parser = argparse.ArgumentParser()
@@ -50,6 +22,9 @@ url = 'https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833?service=wcs&reques
 # Connect to the WCS service
 wcs = WebCoverageService(url, version='1.0.0')
 
+# Specify the coverage id
+coverage_id = 'nhm_dtm_topo_25833'
+
 # Center point (latitude, longitude)
 center_lat, center_lon = args.center_lat, args.center_lon
 
@@ -63,54 +38,109 @@ transformer = Transformer.from_crs(wgs84, epsg25833)
 # Convert center point to EPSG:25833
 center_x, center_y = transformer.transform(center_lat, center_lon)
 
-# Segment size
-segment_size = 1000  # 2km is now split into two
+# The total width and height of the area
+total_width = 4100
+total_height = 4100
 
-segments = ["NW1", "NW2", "NW3", "NW4", 
-            "NE1", "NE2", "NE3", "NE4", 
-            "SW1", "SW2", "SW3", "SW4", 
-            "SE1", "SE2", "SE3", "SE4"]
+# The width and height of each quadrant
+quadrant_width = total_width / 2
+quadrant_height = total_height / 2
 
-datasets = []
+# The list of quadrants (files)
+quadrant_files = []
 
-for segment in segments:
-    print(f"Downloading segment: {segment}")
-    
-    # Calculate the bounding box for the segment
-    bbox = get_segment_bbox(center_x, center_y, segment_size, segment)
+# The list of quadrants (files)
+quadrant_files = []
 
-    # Request the coverage for the segment
+# Function to handle download and processing of a quadrant
+def process_quadrant(i, j):
+    # Calculate the bounding box (minx, miny, maxx, maxy) for the quadrant
+    bbox = (
+        center_x - total_width / 2 + i * quadrant_width,  # minx
+        center_y - total_height / 2 + j * quadrant_height,  # miny
+        center_x - total_width / 2 + (i + 1) * quadrant_width,  # maxx
+        center_y - total_height / 2 + (j + 1) * quadrant_height,  # maxy
+    )
+
+    # Request the coverage for the quadrant
     response = wcs.getCoverage(
-        identifier='nhm_dtm_topo_25833',
+        identifier=coverage_id,
         bbox=bbox,
         crs='EPSG:25833',
         format='GeoTIFF',
-        resx=1,
+        resx=1,  # Adjust resolution to have 2048px per quadrant
         resy=1
     )
 
-    # Diagnostic: Save the content of a specific segment to a file
-    if segment == "SE4":
-        with open("diagnostic_se4_segment.tif", "wb") as f:
-            f.write(response.read())  # Using .read() instead of .content
-
-    # Process the response as you originally intended
+    # Save the response to a GeoTIFF file
     with MemoryFile(response.read()) as memfile:
-        datasets.append(memfile.open())
+        with memfile.open() as dataset:
+            # Save the quadrant GeoTIFF
+            quadrant_geotiff_path = os.path.join(args.output_location, f'quadrant_{i}_{j}_32b.tif')
+            quadrant_files.append(quadrant_geotiff_path)
+            with rasterio.open(quadrant_geotiff_path, 'w', **dataset.profile) as dst:
+                dst.write(dataset.read())
 
-# Merge the datasets
-merged_dataset, merged_transform = rasterio.merge.merge(datasets)
+# Create a ThreadPoolExecutor
+with ThreadPoolExecutor(max_workers=4) as executor:
+    # For each quadrant
+    for i in range(2):
+        for j in range(2):
+            executor.submit(process_quadrant, i, j)
 
-# Save the merged dataset to a GeoTIFF file
-original_geotiff_path = os.path.join(args.output_location, 'height_4km_download.tif')
-with rasterio.open(original_geotiff_path, 'w', driver='GTiff', height=merged_dataset.shape[1],
-                   width=merged_dataset.shape[2], count=1, dtype=str(merged_dataset.dtype),
-                   crs=epsg25833, transform=merged_transform) as original_dst:
-    original_dst.write(merged_dataset)
+# List to store each raster data array and its associated transform
+src_files_to_mosaic = []
 
-print("Height GeoTIFF Information:")
-print(f"  CRS: {epsg25833}")
-print(f"  Transform: {merged_transform}")
-print(f"  Width: {merged_dataset.shape[2]}, Height: {merged_dataset.shape[1]}")
-print(f"  Pixel Size: 1 meter, 1 meter")
-print(f"GeoTIFF saved to {original_geotiff_path}")
+# Open each quadrant file, and store the raster data array and its associated transform
+for fp in quadrant_files:
+    src = rasterio.open(fp)
+    src_files_to_mosaic.append(src)
+
+# Merge function returns a single mosaic array and the transformation info
+mosaic, out_trans = merge(src_files_to_mosaic)
+
+# Copy the metadata
+out_meta = src.meta.copy()
+
+# Update the metadata
+out_meta.update({"driver": "GTiff",
+                 "height": mosaic.shape[1],
+                 "width": mosaic.shape[2],
+                 "transform": out_trans,
+                 "crs": epsg25833})
+
+# Write the mosaic raster to disk
+with rasterio.open(os.path.join(args.output_location, 'height_4km_download.tif'), "w", **out_meta) as dest:
+    dest.write(mosaic)
+
+# Close the datasets
+for src in src_files_to_mosaic:
+    src.close()
+
+# Delete the quadrant files
+for quadrant_file in quadrant_files:
+    os.remove(quadrant_file)
+
+
+# Unused functionality for converting the height data to a more legible 16-bit png file:
+
+## Open the merged GeoTIFF file
+#with rasterio.open(os.path.join(args.output_location, 'heightmap_32b_4096m.tiff'), 'r') as src:
+#    # Read the pixel values
+#    pixel_array = src.read(1)
+
+#    # Define the known range of the dataset
+#    min_height = -4
+#    max_height = 2500
+
+#    # Normalize the pixel values to the range 0 - 65535
+#    normalized_array = ((pixel_array - min_height) / (max_height - min_height)) * 65535
+
+#    # Handle NaN values
+#    normalized_array = np.nan_to_num(normalized_array, nan=0)
+
+#    # Convert the normalized array to 16-bit unsigned integer
+#    uint16_array = normalized_array.astype(np.uint16)
+
+## Write the data to a 16-bit PNG file
+#imageio.imwrite(os.path.join(args.output_location, 'heightmap_16b_4096m.png'), uint16_array)

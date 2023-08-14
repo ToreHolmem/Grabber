@@ -39,12 +39,12 @@ transformer = Transformer.from_crs(wgs84, epsg25833)
 center_x, center_y = transformer.transform(center_lat, center_lon)
 
 # The total width and height of the area
-total_width = 4096
-total_height = 4096
+total_width = 60000
+total_height = 60000
 
 # The width and height of each quadrant
-quadrant_width = total_width / 2
-quadrant_height = total_height / 2
+quadrant_width = total_width / 4
+quadrant_height = total_height / 4
 
 # The list of quadrants (files)
 quadrant_files = []
@@ -68,8 +68,8 @@ def process_quadrant(i, j):
         bbox=bbox,
         crs='EPSG:25833',
         format='GeoTIFF',
-        resx=1,  # Adjust resolution to have 2048px per quadrant
-        resy=1
+        resx=10,  # Adjust resolution to maintain an output of about 1500px per quadrant
+        resy=10
     )
 
     # Save the response to a GeoTIFF file
@@ -82,10 +82,10 @@ def process_quadrant(i, j):
                 dst.write(dataset.read())
 
 # Create a ThreadPoolExecutor
-with ThreadPoolExecutor(max_workers=4) as executor:
+with ThreadPoolExecutor(max_workers=8) as executor:
     # For each quadrant
-    for i in range(2):
-        for j in range(2):
+    for i in range(4):
+        for j in range(4):
             executor.submit(process_quadrant, i, j)
 
 # List to store each raster data array and its associated transform
@@ -110,7 +110,7 @@ out_meta.update({"driver": "GTiff",
                  "crs": epsg25833})
 
 # Write the mosaic raster to disk
-with rasterio.open(os.path.join(args.output_location, 'heightmap_32b_4096m.tiff'), "w", **out_meta) as dest:
+with rasterio.open(os.path.join(args.output_location, 'height_60km.tif'), "w", **out_meta) as dest:
     dest.write(mosaic)
 
 # Close the datasets
@@ -121,23 +121,25 @@ for src in src_files_to_mosaic:
 for quadrant_file in quadrant_files:
     os.remove(quadrant_file)
 
-# Open the merged GeoTIFF file
-with rasterio.open(os.path.join(args.output_location, 'heightmap_32b_4096m.tiff'), 'r') as src:
-    # Read the pixel values
-    pixel_array = src.read(1)
+# Unused functionality of saving the geotif file to a more legible 16-bit png
 
-    # Define the known range of the dataset
-    min_height = -4
-    max_height = 2500
+## Open the merged GeoTIFF file
+#with rasterio.open(os.path.join(args.output_location, 'heightmap_32b_60km.tiff'), 'r') as src:
+#    # Read the pixel values
+#    pixel_array = src.read(1)
 
-    # Normalize the pixel values to the range 0 - 65535
-    normalized_array = ((pixel_array - min_height) / (max_height - min_height)) * 65535
+#    # Define the known range of the dataset
+#    min_height = -4
+#    max_height = 2500
 
-    # Handle NaN values
-    normalized_array = np.nan_to_num(normalized_array, nan=0)
+#    # Normalize the pixel values to the range 0 - 65535
+#    normalized_array = ((pixel_array - min_height) / (max_height - min_height)) * 65535
 
-    # Convert the normalized array to 16-bit unsigned integer
-    uint16_array = normalized_array.astype(np.uint16)
+#    # Handle NaN values
+#    normalized_array = np.nan_to_num(normalized_array, nan=0)
 
-# Write the data to a 16-bit PNG file
-imageio.imwrite(os.path.join(args.output_location, 'heightmap_16b_4096m.png'), uint16_array)
+#    # Convert the normalized array to 16-bit unsigned integer
+#    uint16_array = normalized_array.astype(np.uint16)
+
+## Write the data to a 16-bit PNG file
+#imageio.imwrite(os.path.join(args.output_location, 'heightmap_16b_60km.png'), uint16_array)
