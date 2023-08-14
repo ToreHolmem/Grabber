@@ -10,8 +10,10 @@ import threading
 from queue import Queue
 import time
 import rasterio
+from rasterio import merge
 from rasterio.transform import from_origin
 import numpy as np
+from tqdm import tqdm
 
 # part 0: parse arguments
 parser = argparse.ArgumentParser()
@@ -44,7 +46,7 @@ def tile_worker(q, output_image, tile_size):
         i, j, tile_bbox = tile_info
         tile = download_tile(tile_bbox, tile_size, tile_size)
         output_image.paste(tile, (i * tile_size, j * tile_size))
-        print(f"Tile ({i}, {j}) processed.")
+        pbar.update(1)
         q.task_done()
 
 # part 2: set up input parameters
@@ -99,7 +101,7 @@ print(f"Number of Tiles (X): {num_tiles_x}, Number of Tiles (Y): {num_tiles_y}")
 
 # part 3: download and merge tiles
 
-print("Merging tiles into final image...")
+pbar = tqdm(total=total_tiles, desc="Merging tiles", ncols=100)
 start_time = time.time() # start timing
 output_image = Image.new('RGB', (tile_size * num_tiles_x, tile_size * num_tiles_y))
 total_tiles = num_tiles_x * num_tiles_y
@@ -129,6 +131,8 @@ for _ in range(num_workers):
     tile_queue.put(None)
 for worker in workers:
     worker.join()
+    pbar.close()
+
 
 # Define the CRS
 crs = rasterio.crs.CRS.from_string("EPSG:25833")
@@ -155,11 +159,6 @@ print("Profile:", profile) # Print the profile
 
 # Convert the PIL image to a NumPy array
 output_array = np.array(output_image)
-
-# Save as a PNG file
-output_image_path = os.path.join(args.output_location, 'aerial_image_4km.png')
-output_image.save(output_image_path)
-print(f"PNG saved to {output_image_path}")
 
 # Write the GeoTIFF file
 output_image_path = os.path.join(args.output_location, 'aerial_4km_download.tif')

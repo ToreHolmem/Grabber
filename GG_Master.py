@@ -5,6 +5,8 @@ import rasterio
 from pyproj import CRS, Transformer
 import os
 from rasterio.warp import transform_bounds
+import numpy as np
+import imageio
 
 # Function to crop the image
 def crop_image(file_path, center_lat, center_lon, size_meters, output_path):
@@ -25,7 +27,7 @@ def crop_image(file_path, center_lat, center_lon, size_meters, output_path):
 
     with rasterio.open(file_path) as src:
         if src.crs != epsg25833:
-            bbox = transform_bounds(src.crs, epsg25833, *bbox)
+            bbox = transform_bounds(src.crs, epsg25833, *bboxw)
 
         window = rasterio.windows.from_bounds(*bbox, transform=src.transform)
         cropped_array = src.read(window=window)
@@ -45,6 +47,35 @@ def crop_image(file_path, center_lat, center_lon, size_meters, output_path):
         with rasterio.open(output_path, 'w', **profile) as dst:
             dst.write(cropped_array)
 
+# Function to delete all files that are not part of the final output set
+def delete_files_with_download(output_dir):
+    # Loop through all files in the directory
+    for filename in os.listdir(output_dir):
+        # Check if "download" is in the filename
+        if "download" in filename:
+            # Construct full file path
+            file_path = os.path.join(output_dir, filename)
+            try:
+                # Remove the file
+                os.remove(file_path)
+                print(f"Deleted {filename}")
+            except Exception as e:
+                print(f"Error deleting {filename}: {e}")
+
+#Function to save cropped tif files to png
+def tif_to_png(tif_path, png_path):
+    with rasterio.open(tif_path) as src:
+        img_array = src.read()
+        img_array = np.transpose(img_array, (1, 2, 0))  # This reorders the dimensions from (bands, height, width) to (height, width, bands)
+        
+        # Ensure there's no more than 3 bands (R, G, B) for PNG.
+        if img_array.shape[2] > 3:
+            img_array = img_array[:, :, :3]
+
+        # Normalize to 0-255 if the image isn't already in that range
+        img_array = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array)) * 255
+        
+        imageio.imsave(png_path, img_array.astype(np.uint8))
 
 center_lat = 62.62104190802922
 center_lon = 6.854110293340546
@@ -55,9 +86,10 @@ else:
     output_location = "/Users/toreholmem/Dropbox/! Prosjekter/Fiksdal/03 Assets/Data/Fra GGrabber"
 
 scripts_to_run = [
-    'GG_Aerial_1km.py',
-    'GG_Aerial_4km.py',
+    #'GG_Aerial_1km.py',
+    #'GG_Aerial_4km.py',
     'GG_Height_1km.py',
+    #'GG_Height_4km_old.py',
 ]
 
 for script in scripts_to_run:
@@ -75,12 +107,23 @@ for script in scripts_to_run:
 
 print("All scripts executed.")
 
-crop_size_meters = 1000
-crop_image(os.path.join(output_location, 'height_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'height_1km_cropped.tif'))
-crop_image(os.path.join(output_location, 'aerial_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'aerial_1km_cropped.tif'))
 
-crop_size_meters_4km = 4000
-crop_image(os.path.join(output_location, 'aerial_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'aerial_4km_cropped.tif'))
+##Crop images to the same area - 1km
+#crop_size_meters = 1000
+#crop_image(os.path.join(output_location, 'height_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'height_1km.tif'))
+#crop_image(os.path.join(output_location, 'aerial_1km_download.tif'), center_lat, center_lon, crop_size_meters, os.path.join(output_location, 'aerial_1km.tif'))
 
-print("Cropping completed.")
+##Crop images to the same area - 4km
+#crop_size_meters_4km = 4000
+#crop_image(os.path.join(output_location, 'aerial_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'aerial_4km.tif'))
+#crop_image(os.path.join(output_location, 'height_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'height_4km.tif'))
+
+##Convert the aerial images to PNGs as well
+#tif_to_png(os.path.join(output_location, 'aerial_1km.tif'), os.path.join(output_location, 'aerial_1km_copy.png'))
+#tif_to_png(os.path.join(output_location, 'aerial_4km.tif'), os.path.join(output_location, 'aerial_4km_copy.png'))
+
+##Clean up
+#delete_files_with_download(output_location)
+
+##print("Job done")
 
