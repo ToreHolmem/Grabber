@@ -1,4 +1,5 @@
 {
   "SuppressConfigureTestFrameworkPrompt": "true",
-  "Interpreter": "Global|VisualStudio|geospatial"
+  "Interpreter": "Global|VisualStudio|geospatial",
+  "SuppressPackageInstallationPrompt": true
 }
