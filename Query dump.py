@@ -1,16 +1,23 @@
 import requests
-from xml.etree import ElementTree
 
-# Specify the WCS endpoint url for GetCapabilities
-url = 'https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833?service=wcs&request=getcapabilities'
+def test_api_connection():
+    url = "https://services.geodataonline.no/arcgis/rest/services/Geomap_UTM33_EUREF89/GeomapBasis2/MapServer/82/query"
+    params = {
+        "where": "1=1",
+        "outFields": "*",
+        "f": "geojson",
+        "token": "SM9vAJIp4ApegEaDONqbTuedGa_D69wuiJMPFvayMBu6u6x3FMRNcau4PjVgvO_B"  # your token here
+    }
 
-response = requests.get(url)
-if response.status_code == 200:
-    tree = ElementTree.fromstring(response.content)
+    response = requests.get(url, params=params)
 
-    # Pretty print the XML to see its structure
-    ElementTree.dump(tree)
+    print(f"HTTP Status Code: {response.status_code}")
+    
+    if response.status_code == 200:
+        print("Successfully connected to the API.")
+        print("Response Data:", response.json())
+    else:
+        print(f"Failed to connect to the API. HTTP Status Code: {response.status_code}")
 
-    # Additionally, you can search for tags with 'Max' which might indicate constraints
-    for elem in tree.findall(".//{http://www.opengis.net/wcs}Max*"):
-        print(f"{elem.tag}: {elem.text}")
+if __name__ == "__main__":
+    test_api_connection()

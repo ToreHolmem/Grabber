@@ -78,34 +78,38 @@ def conditional_tif_to_png(input_file, output_file):
 
 # Function for converting SR16 to png and deleting tiff file
 def tif_to_custom_rgb_png_and_delete(tif_path, png_path):
-    with rasterio.open(tif_path) as src:
-        img_array = src.read(1)  # Reading the first band
+    if os.path.exists(tif_path):
+        with rasterio.open(tif_path) as src:
+            img_array = src.read(1)  # Reading the first band
 
-        # Create a mask for nodata values
-        nodata_mask = (img_array == src.nodatavals[0])
+            # Create a mask for nodata values
+            nodata_mask = (img_array == src.nodatavals[0])
 
-        # Create an empty RGB image
-        rgb_array = np.zeros((img_array.shape[0], img_array.shape[1], 3), dtype=np.uint8)
+            # Create an empty RGB image
+            rgb_array = np.zeros((img_array.shape[0], img_array.shape[1], 3), dtype=np.uint8)
 
-        # Fill the R, G, B channels based on the actual pixel values
-        rgb_array[:,:,0] = np.where(img_array == 3, 255, 0)  # Red channel gets the pixels with value 3
-        rgb_array[:,:,1] = np.where(img_array == 2, 255, 0)  # Green channel gets the pixels with value 2
-        rgb_array[:,:,2] = np.where(img_array == 1, 255, 0)  # Blue channel gets the pixels with value 1
+            # Fill the R, G, B channels based on the actual pixel values
+            rgb_array[:,:,0] = np.where(img_array == 3, 255, 0)  # Red channel
+            rgb_array[:,:,1] = np.where(img_array == 2, 255, 0)  # Green channel
+            rgb_array[:,:,2] = np.where(img_array == 1, 255, 0)  # Blue channel
 
-        # Apply the nodata mask to all channels
-        rgb_array[nodata_mask] = 0
+            # Apply the nodata mask to all channels
+            rgb_array[nodata_mask] = 0
 
-        # Debugging
-        print(f"Shape of rgb_array: {rgb_array.shape}")
-        print(f"Data type of rgb_array: {rgb_array.dtype}")
+            # Debugging
+            print(f"Shape of rgb_array: {rgb_array.shape}")
+            print(f"Data type of rgb_array: {rgb_array.dtype}")
 
-        # Create an image from the numpy array
-        try:
-            img_pil = Image.fromarray(rgb_array, 'RGB')
-            img_pil.save(png_path)
-        except ValueError as e:
-            print(f"An error occurred: {e}")
-            return
+            # Create an image from the numpy array
+            try:
+                img_pil = Image.fromarray(rgb_array, 'RGB')
+                img_pil.save(png_path)
+            except ValueError as e:
+                print(f"An error occurred: {e}")
+                return
+    else:
+        print(f"File {tif_path} does not exist. Skipping operation.")
+
 
     # Delete the intermediate TIFF file
     try:
@@ -121,21 +125,20 @@ def tif_to_custom_rgb_png_and_delete(tif_path, png_path):
     except Exception as e:
         print(f"Error deleting {tif_path}: {e}")
 
-
+# Variables for location and target folder
 center_lat = 62.62104190802922
 center_lon = 6.854110293340546
+output_location = r"X:\Dropbox\! Prosjekter\Fiksdal\03 Assets\Data\Python Scripts Output\test"
 
-if platform.system() == 'Windows':
-    output_location = r"X:\Dropbox\! Prosjekter\Fiksdal\03 Assets\Data\Python Scripts Output"
-else:
-    output_location = "/Users/toreholmem/Dropbox/! Prosjekter/Fiksdal/03 Assets/Data/Python Scripts Output"
 
 scripts_to_run = [
     #'GG_Aerial_1km.py',
     #'GG_Aerial_4km.py',
+    'GG_Aerial_60km.py',
     #'GG_Height_1km.py',
     #'GG_Height_4km.py',
     #'GG_Height_60km.py',
+    #'GG_Veiflate.py',
 ]
 
 for script in scripts_to_run:
@@ -183,4 +186,4 @@ tif_to_custom_rgb_png_and_delete(tif_path, png_path)
 print("Cleaning up")
 delete_files_with_download(output_location)
 
-#print("All files downloaded and cropped great script good job thumbsup")
+print("All files downloaded and cropped great script good job thumbsup")
