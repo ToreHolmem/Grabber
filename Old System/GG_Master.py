@@ -126,19 +126,19 @@ def tif_to_custom_rgb_png_and_delete(tif_path, png_path):
         print(f"Error deleting {tif_path}: {e}")
 
 # Variables for location and target folder
-center_lat = 62.62104190802922
-center_lon = 6.854110293340546
-output_location = r"X:\Dropbox\! Prosjekter\Fiksdal\03 Assets\Data\Python Scripts Output\test"
+center_lat = 62.471192157088616
+center_lon = 6.158009308952611
+output_location = r"X:\Dropbox\! Prosjekter\GEOS\01 Assets\Ggrabber Output"
 
 
 scripts_to_run = [
     #'GG_Aerial_1km.py',
     #'GG_Aerial_4km.py',
-    'GG_Aerial_60km.py',
+    #'GG_Aerial_60km.py',
     #'GG_Height_1km.py',
     #'GG_Height_4km.py',
     #'GG_Height_60km.py',
-    #'GG_Veiflate.py',
+    'GG_SR16_4km_WMS copy.py',
 ]
 
 for script in scripts_to_run:
@@ -174,8 +174,8 @@ conditional_crop_image(os.path.join(output_location, 'sr16_15_SRRTRESLAG.tif'), 
 print("Saving images as PNG copies")
 
 #Convert the aerial images to PNGs as well
-#conditional_tif_to_png(os.path.join(output_location, 'aerial_1km.tiff'), os.path.join(output_location, 'aerial_1km_copy.png'))
-#conditional_tif_to_png(os.path.join(output_location, 'aerial_4km.tiff'), os.path.join(output_location, 'aerial_4km_copy.png'))
+conditional_tif_to_png(os.path.join(output_location, 'aerial_1km.tiff'), os.path.join(output_location, 'aerial_1km_copy.png'))
+conditional_tif_to_png(os.path.join(output_location, 'aerial_4km.tiff'), os.path.join(output_location, 'aerial_4km_copy.png'))
 
 # Convert SR16 to PNG
 tif_path = os.path.join(output_location, 'sr16_15_SRRTRESLAG_4km_download.tiff')
