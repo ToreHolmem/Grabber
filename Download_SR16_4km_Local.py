@@ -28,10 +28,10 @@ def process_geotiff(geotiff_location, output_location, center_lat, center_lon):
             # Define the bounding box of the area you want to crop
             # Here, I'm using the center_x and center_y to define a 1x1 degree box
             # Note: You might need to adjust the size of the box depending on the units of the GeoTIFF file's coordinate system
-            crop_min_x = center_x - 2000
-            crop_min_y = center_y - 2000
-            crop_max_x = center_x + 2000
-            crop_max_y = center_y + 2000
+            crop_min_x = center_x - 4000
+            crop_min_y = center_y - 4000
+            crop_max_x = center_x + 4000
+            crop_max_y = center_y + 4000
 
             # Create a window from the bounding box
             window = rasterio.windows.from_bounds(crop_min_x, crop_min_y, crop_max_x, crop_max_y, src.transform)

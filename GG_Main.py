@@ -10,12 +10,10 @@ with open('parameters.json', 'r') as f:
     parameters = json.load(f)
 
 scripts_to_run = [
-    'Download_Aerial_1km.py',
-    'Download_Aerial_4km.py',
-    'Download_Aerial_60km.py',
-    'Download_Height_4km.py',
-    'Download_Height_60km.py',
-    'Download_SR16_4km_Local.py',
+    # 'Download_Aerial_4km.py',
+    # 'Download_Height_4km.py',
+    # 'Download_Height_60km.py',
+    # 'Download_SR16_8km_Local.py',
     'GG_Treatment.py',
 ]
 

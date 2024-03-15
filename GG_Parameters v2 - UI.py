@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import simpledialog
 import json
+import csv
 
 # Function to get new coordinates from the user
 def get_new_coordinates():
@@ -18,7 +19,7 @@ def main():
     parameters = {
         "center_lat": 62.471192157088616,
         "center_lon": 6.158009308952611,
-        "output_location": r"X:\Dropbox\! Prosjekter\GEOS\01 Assets\Ggrabber Output"
+        "output_location": r"X:\Dropbox\! Prosjekter\GEOS\01 Assets\GGrabber Output"
     }
 
     # Get new coordinates from the user
@@ -34,8 +35,15 @@ def main():
     # Write parameters to a JSON file
     with open('parameters.json', 'w') as f:
         json.dump(parameters, f)
+    
+    # # Write parameters to a CSV file
+    # with open('parameters.csv', 'w', newline='') as f:
+    #     writer = csv.writer(f)
+    #     for key, value in parameters.items():
+    #         writer.writerow([key, value])
+    #         print ("data written as csv file")
 
-    print("Parameters updated and saved to 'parameters.json'.")
+    print("Parameters updated and saved to 'parameters.json' and 'parameters.csv'.")
 
 if __name__ == "__main__":
     main()

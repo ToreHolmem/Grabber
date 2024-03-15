@@ -22,7 +22,6 @@ parser.add_argument('center_lon', type=float)
 parser.add_argument('output_location')
 args = parser.parse_args()
 
-# Now you can use args.output_location, args.center_lat, and args.center_lon in your script
 output_location = args.output_location
 center_lat = args.center_lat
 center_lon = args.center_lon
@@ -149,6 +148,7 @@ conditional_crop_image(os.path.join(output_location, 'aerial_1km_download.tif'),
 crop_size_meters_4km = 4033
 conditional_crop_image(os.path.join(output_location, 'aerial_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'aerial_4km.tiff'))
 conditional_crop_image(os.path.join(output_location, 'height_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'height_4km.tiff'))
+conditional_crop_image(os.path.join(output_location, 'depth_4km_download.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'depth_4km.tiff'))
 
 # Crop the existing SR16 geotiff to the same 4km area
 conditional_crop_image(os.path.join(output_location, 'sr16_15_SRRTRESLAG.tif'), center_lat, center_lon, crop_size_meters_4km, os.path.join(output_location, 'sr16_15_SRRTRESLAG_4km_download.tiff'))
@@ -158,6 +158,7 @@ print("Saving images as PNG copies")
 #Convert the aerial images to PNGs as well
 conditional_tif_to_png(os.path.join(output_location, 'aerial_1km.tiff'), os.path.join(output_location, 'aerial_1km_copy.png'))
 conditional_tif_to_png(os.path.join(output_location, 'aerial_4km.tiff'), os.path.join(output_location, 'aerial_4km_copy.png'))
+conditional_tif_to_png(os.path.join(output_location, 'aerial_60km_download.tif'), os.path.join(output_location, 'aerial_60km_copy.png'))
 
 # Convert SR16 to PNG
 tif_path = os.path.join(output_location, 'sr16_15_SRRTRESLAG_4km_download.tiff')
