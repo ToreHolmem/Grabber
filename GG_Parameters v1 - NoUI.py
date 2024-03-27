@@ -4,7 +4,7 @@ import json
 parameters = {
     "center_lat": 62.471192157088616,
     "center_lon": 6.158009308952611,
-    "output_location": r"X:\Dropbox\! Prosjekter\GEOS\01 Assets\Ggrabber Output"
+    "output_location": r"X:\Dropbox\! Prosjekter\GEOS\01 Assets\GGrabber Output"
 }
 
 # Write parameters to a JSON file

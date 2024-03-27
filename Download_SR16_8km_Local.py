@@ -3,7 +3,7 @@ import argparse
 from pyproj import Transformer
 
 # Hard-coded GeoTIFF location
-geotiff_location = "X:\\Dropbox\\! Prosjekter\\GEOS\\01 Assets\\! Data\\SR16 MR\\sr16_15_SRRTRESLAG.tif"
+geotiff_location = "X:/Dropbox/! Prosjekter/GEOS/01 Assets/! Data/SR16 MR/sr16_15_SRRTRESLAG.tif"
 
 # Parse command line arguments
 parser = argparse.ArgumentParser()
