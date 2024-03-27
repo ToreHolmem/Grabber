@@ -1,17 +1,19 @@
-from pyproj import Transformer
 import requests
 import json
 import argparse
 import os
 
-# part 0: parse arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("center_lat", type=float)
-parser.add_argument("center_lon", type=float)
-parser.add_argument("output_location", type=str)
+# Updated argparse to match the requirements for direct bounding box use and final output path
+parser = argparse.ArgumentParser(description="Export a map image for a specific bounding box.")
+parser.add_argument("min_x", type=float, help="Minimum X coordinate of the bounding box.")
+parser.add_argument("min_y", type=float, help="Minimum Y coordinate of the bounding box.")
+parser.add_argument("max_x", type=float, help="Maximum X coordinate of the bounding box.")
+parser.add_argument("max_y", type=float, help="Maximum Y coordinate of the bounding box.")
+parser.add_argument("temp_dir", type=str, help="Temporary directory path for storing intermediate files, not used in this script.")
+parser.add_argument("final_output_path", type=str, help="Path to save the final map image.")
 args = parser.parse_args()
 
-output_directory = args.output_location
+output_directory = args.final_output_path
 file_name = "FKB.geojson"
 output_path = os.path.join(output_directory, file_name)
 

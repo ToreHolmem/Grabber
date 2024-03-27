@@ -1,0 +1,19 @@
+{
+    "layers": [
+      {"id": 7, "name": "Barskog"},
+      {"id": 8, "name": "Lauvskog"},
+      {"id": 9, "name": "Blandingsskog"},
+      {"id": 10, "name": "Ikke tresatt"},
+      {"id": 19, "name": "Fulldyrka jord"},
+      {"id": 20, "name": "Overflatedyrka jord"},
+      {"id": 21, "name": "Innmarksbeite"},
+      {"id": 23, "name": "Myr"},
+      {"id": 24, "name": "Apen fastmark"},
+      {"id": 25, "name": "Ferskvann"},
+      {"id": 26, "name": "Hav"},
+      {"id": 27, "name": "Bre"},
+      {"id": 28, "name": "Bebygd"},
+      {"id": 29, "name": "Samferdsel"}
+    ]
+  }
+  

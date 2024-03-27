@@ -1,41 +1,38 @@
 import os
-import sys
-from math import cos, pi
 import requests
 import argparse
 from PIL import Image
 from io import BytesIO
-import pyproj
 import threading
 from queue import Queue
-import time
+from tqdm import tqdm
 import rasterio
-from rasterio import merge
 from rasterio.transform import from_origin
 import numpy as np
-from tqdm import tqdm
 
-# part 0: parse arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("center_lat", type=float)
-parser.add_argument("center_lon", type=float)
-parser.add_argument("output_location", type=str)
+# print this script is called "Download_Aerial_4km.py" and is used to download aerial imagery data for a 4 km x 4 km bounding box.
+
+# Updated argparse to include temp_dir and final_output_path
+parser = argparse.ArgumentParser(description="Download aerial imagery data for a specific bounding box.")
+parser.add_argument("min_x", type=float, help="Minimum X coordinate of the bounding box.")
+parser.add_argument("min_y", type=float, help="Minimum Y coordinate of the bounding box.")
+parser.add_argument("max_x", type=float, help="Maximum X coordinate of the bounding box.")
+parser.add_argument("max_y", type=float, help="Maximum Y coordinate of the bounding box.")
+parser.add_argument("temp_dir", type=str, help="Temporary directory path for storing intermediate files.")
+parser.add_argument("final_output_path", type=str, help="Path to save the final stitched image.")
 args = parser.parse_args()
 
-print(f"Center Latitude: {args.center_lat}")
-print(f"Center Longitude: {args.center_lon}")
+print("Arguments parsed")
 
-# part 1: define helper functions
+
+
+# Define helper functions
 def download_tile(bbox, width, height):
     image_url = 'https://services.geodataonline.no/arcgis/rest/services/Geocache_UTM33_EUREF89/GeocacheBilder/MapServer/export?bbox={},{},{},{}&bboxSR=25833&imageSR=25833&size={},{}&format=png&transparent=false&f=image'.format(*bbox, width, height)
     response = requests.get(image_url)
     return Image.open(BytesIO(response.content))
 
-def transform_bbox(bbox, src_crs, dst_crs):
-    transformer = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True)
-    min_x, min_y = transformer.transform(bbox[0], bbox[1])
-    max_x, max_y = transformer.transform(bbox[2], bbox[3])
-    return (min_x, min_y, max_x, max_y)
+print("Helper functions defined")
 
 def tile_worker(q, output_image, tile_size):
     while True:
@@ -46,22 +43,15 @@ def tile_worker(q, output_image, tile_size):
         i, j, tile_bbox = tile_info
         tile = download_tile(tile_bbox, tile_size, tile_size)
         output_image.paste(tile, (i * tile_size, j * tile_size))
-        pbar.update(1)
+        pbar.update(1)  # Update the progress bar here
         q.task_done()
 
-# part 2: set up input parameters
-center_lat = args.center_lat
-center_lon = args.center_lon
-half_size = (2 + 0.2) * 1100
+print("Tile worker defined")
 
+# Use the passed bounding box directly
+bbox = (args.min_x, args.min_y, args.max_x, args.max_y)
 
-min_x = center_lon - half_size / (111.32 * 1000 * cos(center_lat * pi / 180))
-max_x = center_lon + half_size / (111.32 * 1000 * cos(center_lat * pi / 180))
-min_y = center_lat - half_size / (111.32 * 1000)
-max_y = center_lat + half_size / (111.32 * 1000)
-
-bbox = (min_x, min_y, max_x, max_y)
-bbox_utm = transform_bbox(bbox, "epsg:4326", "epsg:25833")
+print("Bounding box defined")
 
 # Define the list of resolutions
 resolutions = [
@@ -72,112 +62,72 @@ resolutions = [
     0.33072982812632296, 0.16536491406316148
 ]
 
-# Define the zoom level
-zoom_level = 15  # Set your desired zoom level
+print ("Resolutions defined")
 
-# Get the resolution for the chosen zoom level
+zoom_level = 15  # or another value as required
 resolution = resolutions[zoom_level]
-
-print(f"Resolution for Zoom Level {zoom_level}: {resolution}")
-
-tile_size = 256  # number of pixels per tile
-
+tile_size = 256
 delta_x = resolution * tile_size
 delta_y = resolution * tile_size
+num_tiles_x = int((bbox[2] - bbox[0]) / delta_x) + 1
+num_tiles_y = int((bbox[3] - bbox[1]) / delta_y) + 1
 
-num_tiles_x = int((bbox_utm[2] - bbox_utm[0]) / delta_x) + 1
-num_tiles_y = int((bbox_utm[3] - bbox_utm[1]) / delta_y) + 1
+print("Zoom level, resolution, tile size, delta x, delta y, num tiles x, num tiles y defined")
 
-output_image = Image.new('RGB', (tile_size * num_tiles_x, tile_size * num_tiles_y))
-
+# Initialize the progress bar
 total_tiles = num_tiles_x * num_tiles_y
-tile_counter = 0
+pbar = tqdm(total=total_tiles, desc="Downloading and processing tiles")
 
-print(f"BBox (WGS84): {bbox}")
-print(f"BBox (UTM33): {bbox_utm}")
-print(f"Resolution: {resolution} meters per pixel")
-print(f"Delta X: {delta_x}, Delta Y: {delta_y}")
-print(f"Number of Tiles (X): {num_tiles_x}, Number of Tiles (Y): {num_tiles_y}")
+print("Progress bar initialized")
 
-# part 3: download and merge tiles
-
-pbar = tqdm(total=total_tiles, desc="Merging tiles", ncols=100)
-start_time = time.time() # start timing
+# Prepare for tile download and stitching
 output_image = Image.new('RGB', (tile_size * num_tiles_x, tile_size * num_tiles_y))
-total_tiles = num_tiles_x * num_tiles_y
-tile_counter = 0
-
-# part 4: Create a queue of tiles to be processed
 tile_queue = Queue()
 for i in range(num_tiles_x):
     for j in range(num_tiles_y):
-        tile_bbox = (bbox_utm[0] + i * delta_x, bbox_utm[1] + (num_tiles_y - j - 1) * delta_y, bbox_utm[0] + (i + 1) * delta_x, bbox_utm[1] + (num_tiles_y - j) * delta_y)
+        tile_bbox = (bbox[0] + i * delta_x, bbox[1] + (num_tiles_y - j - 1) * delta_y, bbox[0] + (i + 1) * delta_x, bbox[1] + (num_tiles_y - j) * delta_y)
         tile_queue.put((i, j, tile_bbox))
-        tile_counter += 1
 
-# part 5: Create and start worker threads to download and process tiles
-num_workers = 64 # Set the number of worker threads
-workers = []
-for _ in range(num_workers):
-    worker = threading.Thread(target=tile_worker, args=(tile_queue, output_image, tile_size))
+print("Tile download and stitching prepared")
+
+# Start worker threads for tile downloading and processing
+num_workers = 64
+workers = [threading.Thread(target=tile_worker, args=(tile_queue, output_image, tile_size)) for _ in range(num_workers)]
+for worker in workers:
     worker.start()
-    workers.append(worker)
 
-# part 6: Wait for all tiles to be processed
+print("Worker threads started")
+
+# Add this block to put a termination signal (None) for each worker
+for _ in range(num_workers):
+    tile_queue.put(None)  # Signal for each worker thread to terminate
+
+# Wait for all tiles to be processed and workers to finish
 tile_queue.join()
 
-# part 7: Stop the worker threads
-for _ in range(num_workers):
-    tile_queue.put(None)
+# Join all worker threads to ensure they have finished
 for worker in workers:
     worker.join()
-    pbar.close()
 
+print("All tiles processed and workers finished")
 
-# Define the CRS
+# Saving the stitched image
 crs = rasterio.crs.CRS.from_string("EPSG:25833")
-
-# Define the geotransformation (assuming north-up) -- NEW METHOD
-pixel_resolution = resolution  # which is meters per pixel at the desired zoom level
-transform = from_origin(bbox_utm[0], bbox_utm[1] + (tile_size * num_tiles_y * pixel_resolution), pixel_resolution, pixel_resolution)
-
-
-print("Transform:", transform) # Print the transform
-
-# Define the profile (metadata)
+transform = from_origin(bbox[0], bbox[1] + (tile_size * num_tiles_y * resolution), resolution, resolution)
 profile = {
     'driver': 'GTiff',
     'height': output_image.height,
     'width': output_image.width,
-    'count': 3, # Assuming an RGB image
+    'count': 3,
     'dtype': rasterio.uint8,
     'crs': crs,
     'transform': transform,
 }
 
-print("Profile:", profile) # Print the profile
+print("GeoTIFF profile defined")
 
-# Convert the PIL image to a NumPy array
-output_array = np.array(output_image)
-
-# Write the GeoTIFF file
-output_image_path = os.path.join(args.output_location, 'aerial_4km_download.tif')
+output_image_path = args.final_output_path
 with rasterio.open(output_image_path, 'w', **profile) as dst:
+    output_array = np.array(output_image)
     for band in range(output_array.shape[2]):
         dst.write(output_array[:, :, band], band + 1)
-
-print(f"GeoTIFF saved to {output_image_path}")
-
-# part 10: print time
-end_time = time.time() # stop timing
-print(f"Image cropping took {1000 * (end_time - start_time):.2f} milliseconds.")
-
-print("Aerial 4km download and stitch done")
-
-print("Aerial GeoTIFF Information:")
-print(f"  CRS: {crs}")
-print(f"  Transform: {transform}")
-print(f"  Width: {output_image.width}, Height: {output_image.height}")
-print(f"  Pixel Size: {delta_x} meters, {delta_y} meters")
-
-

@@ -17,8 +17,10 @@ from PIL import Image
 
 # Parse command line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('center_lat', type=float)
-parser.add_argument('center_lon', type=float)
+parser.add_argument('min_x', type=float)
+parser.add_argument('min_y', type=float)
+parser.add_argument('max_x', type=float)
+parser.add_argument('max_y', type=float)
 parser.add_argument('output_location')
 args = parser.parse_args()
 

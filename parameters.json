@@ -1,1 +1,52 @@
-{"center_lat": 62.5048089622807, "center_lon": 6.293581038193839, "output_location": "X:\\Dropbox\\! Prosjekter\\GEOS\\01 Assets\\Ggrabber Output"}
+{
+    "center_lat": 62.09737293101796,
+    "center_lon": 5.551083509624654,
+    "output_location": "X:\\Dropbox\\! Prosjekter\\Prodtex\\03 Assets\\From Grabber",
+    "scripts": {
+        "Download_Aerial_1km.py": {
+            "execute": false,
+            "crop": false,
+            "bbox_size_km_download": 1200,
+            "bbox_size_km_crop": 1000,
+            "data_type": "aerial_1km_DL",
+            "output_file_name": "aerial_1km_DL.tif",
+            "cropped_file_name": "aerial_1km.tif"
+        },
+        "Download_Aerial_4km.py": {
+            "execute": false,
+            "crop": false,
+            "bbox_size_km_download": 5000,
+            "bbox_size_km_crop": 4033,
+            "data_type": "aerial_4km_DL",
+            "output_file_name": "aerial_4km_DL.tif",
+            "cropped_file_name": "aerial_4km.tif"
+        },
+        "Download_Height_4km.py": {
+            "execute": false,
+            "crop": false,
+            "bbox_size_km_download": 5000,
+            "bbox_size_km_crop": 4033,
+            "data_type": "height_4km_DL",
+            "output_file_name": "height_4km_DL.tif",
+            "cropped_file_name": "height_4km.tif"
+        },
+        "Download_Height_60km.py": {
+            "execute": false,
+            "crop": false,
+            "bbox_size_km_download": 70000,
+            "bbox_size_km_crop": 60000,
+            "data_type": "height_60km_DL",
+            "output_file_name": "height_60km_DL.tif",
+            "cropped_file_name": "height_60km.tif"
+        },
+        "Download_AR5.py": {
+            "execute": true,
+            "crop": false,
+            "bbox_size_km_download": 3586,
+            "bbox_size_km_crop": 3586,
+            "data_type": "AR5_4km",
+            "output_file_name": "AR5_4km.png",
+            "cropped_file_name": "AR5_4km_cropped.png"
+        }
+    }
+}

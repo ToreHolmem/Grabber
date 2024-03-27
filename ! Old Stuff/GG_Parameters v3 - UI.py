@@ -1,9 +1,22 @@
 import tkinter as tk
-from tkinter import Listbox, END
+from tkinter import Checkbutton, IntVar, Listbox, END
 import json
 
 # Path to the history JSON file
 HISTORY_PATH = 'history.json'
+
+# Function to load parameters from a JSON file
+def load_parameters():
+    try:
+        with open(PARAMETERS_PATH, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+# Function to save parameters to a JSON file
+def save_parameters(parameters):
+    with open(PARAMETERS_PATH, 'w') as f:
+        json.dump(parameters, f, indent=4)
 
 # Function to load history from a JSON file
 def load_history():
